@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ message.subject }} - Helpdesk System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <!-- Back Button -->
+        <div class="mb-3">
+            <a href="{% url 'inbox' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Inbox
+            </a>
+        </div>
+
+        <!-- Message Details -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-envelope-open"></i> Message Details</h5>
+                {% if message.status == 'new' %}
+                <span class="badge badge-new">New</span>
+                {% else %}
+                <span class="badge badge-replied">Replied</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-2 text-muted"><strong>From:</strong></div>
+                    <div class="col-md-10">
+                        {{ message.sender_name }} 
+                        <a href="mailto:{{ message.sender_email }}" class="text-decoration-none">
+                            ({{ message.sender_email }})
+                        </a>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-2 text-muted"><strong>Subject:</strong></div>
+                    <div class="col-md-10">{{ message.subject }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-2 text-muted"><strong>Date:</strong></div>
+                    <div class="col-md-10">
+                        {{ message.timestamp|date:"F d, Y" }} at {{ message.timestamp|time:"h:i A" }}
+                    </div>
+                </div>
+                {% if message.attachment %}
+                <div class="row mb-3">
+                    <div class="col-md-2 text-muted"><strong>Attachment:</strong></div>
+                    <div class="col-md-10">
+                        <a href="{{ message.attachment.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-paperclip"></i> Download Attachment
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+                <hr>
+                <div class="row">
+                    <div class="col-md-2 text-muted"><strong>Message:</strong></div>
+                    <div class="col-md-10">
+                        <div class="bg-light p-3 rounded" style="white-space: pre-wrap;">{{ message.message_body }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Previous Replies -->
+        {% if replies %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-chat-left-text"></i> Reply History</h5>
+            </div>
+            <div class="card-body">
+                {% for reply in replies %}
+                <div class="card mb-3 {% if forloop.last %}mb-0{% endif %}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <strong class="text-primary">
+                                <i class="bi bi-person-circle"></i> 
+                                {{ reply.admin.get_full_name|default:reply.admin.username }}
+                            </strong>
+                            <small class="text-muted">
+                                {{ reply.timestamp|date:"F d, Y" }} at {{ reply.timestamp|time:"h:i A" }}
+                            </small>
+                        </div>
+                        <div style="white-space: pre-wrap;">{{ reply.reply_body }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Reply Form -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-reply"></i> Send Reply</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.reply_body.id_for_label }}" class="form-label">
+                            Your Reply <span class="text-danger">*</span>
+                        </label>
+                        {{ form.reply_body }}
+                        {% if form.reply_body.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ form.reply_body.errors }}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">
+                            This reply will be sent to {{ message.sender_email }}
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-send"></i> Send Reply
+                        </button>
+                        {% if message.status == 'new' %}
+                        <form method="post" action="{% url 'mark_as_read' message.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-success">
+                                <i class="bi bi-check-circle"></i> Mark as Replied (Without Sending)
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
